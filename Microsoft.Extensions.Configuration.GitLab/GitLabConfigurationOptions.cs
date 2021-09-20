@@ -29,7 +29,7 @@ namespace Microsoft.Extensions.Configuration.GitLab
 
         public string ProjectId { get; set; }
 
-        public string EnvironmentName { get; set; }
+        public string EnvironmentName { get; set; } = "*";
         
         public Func<string, string> KeyNormalizer { get; set; } = NormalizeKey;
 
