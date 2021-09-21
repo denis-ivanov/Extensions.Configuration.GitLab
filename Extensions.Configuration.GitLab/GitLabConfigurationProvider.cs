@@ -1,14 +1,12 @@
 ﻿using GitLabApiClient;
-using GitLabApiClient.Models.AwardEmojis.Responses;
-using GitLabApiClient.Models.Variables.Response;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Extensions.Configuration.GitLab
+namespace Extensions.Configuration.GitLab
 {
     public class GitLabConfigurationProvider : ConfigurationProvider, IDisposable
     {

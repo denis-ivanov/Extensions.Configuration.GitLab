@@ -1,8 +1,9 @@
 ﻿using GitLabApiClient;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.Extensions.Configuration.GitLab
+namespace Extensions.Configuration.GitLab
 {
     public static class GitLabConfigurationExtensions
     {

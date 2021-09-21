@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Extensions.Configuration.GitLab", "Microsoft.Extensions.Configuration.GitLab\Microsoft.Extensions.Configuration.GitLab.csproj", "{CD3BDF62-CE52-4DF6-A069-4BEE6A70A4BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extensions.Configuration.GitLab", "Extensions.Configuration.GitLab\Extensions.Configuration.GitLab.csproj", "{CD3BDF62-CE52-4DF6-A069-4BEE6A70A4BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
