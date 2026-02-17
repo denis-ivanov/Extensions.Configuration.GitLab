@@ -6,117 +6,116 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Extensions.Configuration.GitLab
+namespace Extensions.Configuration.GitLab;
+
+public class GitLabConfigurationProvider : ConfigurationProvider, IDisposable
 {
-    public class GitLabConfigurationProvider : ConfigurationProvider, IDisposable
+    private readonly IGitLabClient _gitlabClient;
+    private readonly GitLabConfigurationOptions _options;
+    private readonly CancellationTokenSource _cancellationTokenSource;
+    private bool _changeTrackingStarted;
+
+    public GitLabConfigurationProvider(
+        [NotNull] IGitLabClient gitlabClient,
+        [NotNull] GitLabConfigurationOptions options)
     {
-        private readonly IGitLabClient _gitlabClient;
-        private readonly GitLabConfigurationOptions _options;
-        private readonly CancellationTokenSource _cancellationTokenSource;
-        private bool _changeTrackingStarted;
+        _gitlabClient = gitlabClient ?? throw new ArgumentNullException(nameof(gitlabClient));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _cancellationTokenSource = new CancellationTokenSource();
+    }
 
-        public GitLabConfigurationProvider(
-            [NotNull] IGitLabClient gitlabClient,
-            [NotNull] GitLabConfigurationOptions options)
-        {
-            _gitlabClient = gitlabClient ?? throw new ArgumentNullException(nameof(gitlabClient));
-            _options = options ?? throw new ArgumentNullException(nameof(options));
-            _cancellationTokenSource = new CancellationTokenSource();
-        }
+    public override void Load()
+    {
+        LoadAsync().GetAwaiter().GetResult();
+    }
 
-        public override void Load()
+    private async Task LoadVariablesAsync()
+    {
+        while (!_cancellationTokenSource.IsCancellationRequested)
         {
-            LoadAsync().GetAwaiter().GetResult();
-        }
+            await WaitForReaload();
 
-        private async Task LoadVariablesAsync()
-        {
-            while (!_cancellationTokenSource.IsCancellationRequested)
+            try
             {
-                await WaitForReaload();
-
-                try
-                {
-                    await LoadAsync();
-                }
-                catch
-                {
-                    // ignored
-                }
+                await LoadAsync();
+            }
+            catch
+            {
+                // ignored
             }
         }
+    }
 
-        private async Task WaitForReaload()
+    private async Task WaitForReaload()
+    {
+        await Task.Delay(_options.ReloadInterval, _cancellationTokenSource.Token).ConfigureAwait(false);
+    }
+
+    private async Task LoadAsync()
+    {
+        var newData = await GetNewDataAsync();
+
+        if (Changed(newData))
         {
-            await Task.Delay(_options.ReloadInterval, _cancellationTokenSource.Token).ConfigureAwait(false);
+            Data = newData;
+            OnReload();
         }
 
-        private async Task LoadAsync()
+        if (!_changeTrackingStarted)
         {
-            var newData = await GetNewDataAsync();
+            _changeTrackingStarted = true;
+            await LoadVariablesAsync();
+        }
+    }
 
-            if (Changed(newData))
-            {
-                Data = newData;
-                OnReload();
-            }
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-            if (!_changeTrackingStarted)
-            {
-                _changeTrackingStarted = true;
-                LoadVariablesAsync();
-            }
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+        }
+    }
+
+    private bool Changed(Dictionary<string, string> newData)
+    {
+        if (Data.Count != newData.Count)
+        {
+            return true;
         }
 
-        public void Dispose()
+        foreach (var kv in Data)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _cancellationTokenSource.Cancel();
-                _cancellationTokenSource.Dispose();
-            }
-        }
-
-        private bool Changed(Dictionary<string, string> newData)
-        {
-            if (Data.Count != newData.Count)
+            if (!newData.TryGetValue(kv.Key, out var value) ||
+                kv.Value != value)
             {
                 return true;
             }
-
-            foreach (var kv in Data)
-            {
-                if (!newData.TryGetValue(kv.Key, out var value) ||
-                    kv.Value != value)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
-        private async Task<Dictionary<string, string>> GetNewDataAsync()
+        return false;
+    }
+
+    private async Task<Dictionary<string, string>> GetNewDataAsync()
+    {
+        var variables = await _gitlabClient.Projects.GetVariablesAsync(_options.ProjectId);
+        var newData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var variable in variables)
         {
-            var variables = await _gitlabClient.Projects.GetVariablesAsync(_options.ProjectId);
-            var newData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var variable in variables)
+            if (variable.EnvironmentScope == _options.EnvironmentName ||
+                variable.EnvironmentScope == "*")
             {
-                if (variable.EnvironmentScope == _options.EnvironmentName ||
-                    variable.EnvironmentScope == "*")
-                {
-                    newData[_options.KeyNormalizer(variable.Key)] = variable.Value;
-                }
+                newData[_options.KeyNormalizer(variable.Key)] = variable.Value;
             }
-
-            return newData;
         }
+
+        return newData;
     }
 }

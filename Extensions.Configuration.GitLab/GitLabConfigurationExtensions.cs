@@ -3,82 +3,48 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Extensions.Configuration.GitLab
+namespace Extensions.Configuration.GitLab;
+
+public static class GitLabConfigurationExtensions
 {
-    public static class GitLabConfigurationExtensions
+    public static IConfigurationBuilder AddGitLab(
+        [NotNull] this IConfigurationBuilder builder,
+        [NotNull] string hostUrl,
+        [NotNull] string projectId,
+        [NotNull] string authenticationToken,
+        [NotNull] string environmentName)
     {
-        public static IConfigurationBuilder AddGitLab(
-            [NotNull] this IConfigurationBuilder builder,
-            [NotNull] string hostUrl,
-            [NotNull] string projectId,
-            [NotNull] string authenticationToken,
-            [NotNull] string environmentName)
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(hostUrl);
+        ArgumentNullException.ThrowIfNull(projectId);
+        ArgumentNullException.ThrowIfNull(authenticationToken);
+        ArgumentNullException.ThrowIfNull(environmentName);
 
-            if (hostUrl == null)
-            {
-                throw new ArgumentNullException(nameof(hostUrl));
-            }
+        var options = new GitLabConfigurationOptions(hostUrl, projectId, authenticationToken, environmentName);
+        return builder.AddGitLab(options);
+    }
 
-            if (projectId == null)
-            {
-                throw new ArgumentNullException(nameof(projectId));
-            }
+    public static IConfigurationBuilder AddGitLab(
+        [NotNull] this IConfigurationBuilder builder,
+        [NotNull] Action<GitLabConfigurationOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
 
-            if (authenticationToken == null)
-            {
-                throw new ArgumentNullException(nameof(authenticationToken));
-            }
+        var options = new GitLabConfigurationOptions();
+        configure(options);
+        return builder.AddGitLab(options);
+    }
 
-            if (environmentName == null)
-            {
-                throw new ArgumentNullException(nameof(environmentName));
-            }
-            
-            var options = new GitLabConfigurationOptions(hostUrl, projectId, authenticationToken, environmentName);
-            return builder.AddGitLab(options);
-        }
+    public static IConfigurationBuilder AddGitLab(
+        [NotNull] this IConfigurationBuilder builder,
+        [NotNull] GitLabConfigurationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(options);
 
-        public static IConfigurationBuilder AddGitLab(
-            [NotNull] this IConfigurationBuilder builder,
-            [NotNull] Action<GitLabConfigurationOptions> configure)
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            if (configure == null)
-            {
-                throw new ArgumentNullException(nameof(configure));
-            }
-
-            var options = new GitLabConfigurationOptions();
-            configure(options);
-            return builder.AddGitLab(options);
-        }
-
-        public static IConfigurationBuilder AddGitLab(
-            [NotNull] this IConfigurationBuilder builder,
-            [NotNull] GitLabConfigurationOptions options)
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            var gitlabClient = new GitLabClient(options.HostUrl, options.AuthenticationToken);
-            var source = new GitLabConfigurationSource(gitlabClient, options);
-            return builder.Add(source);
-        }
+        var gitlabClient = new GitLabClient(options.HostUrl, options.AuthenticationToken);
+        var source = new GitLabConfigurationSource(gitlabClient, options);
+        return builder.Add(source);
     }
 }
