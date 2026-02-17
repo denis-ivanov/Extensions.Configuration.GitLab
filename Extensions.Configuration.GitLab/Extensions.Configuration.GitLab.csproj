@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <Authors>Denis Ivanov</Authors>
+    <Version>2.0.0</Version>
     <FileVersion>2.0.0</FileVersion>
     <AssemblyVersion>2.0.0</AssemblyVersion>
     <Description>Provides GitLab variables configuration provider</Description>
